@@ -24,6 +24,7 @@ Une API REST développée avec Spring Boot permettant la gestion des livres et d
 
 - Récupération de tous les auteurs
 - Récupération d'un auteur par son ID
+- Récupération des livres d'un auteurs
 - Création d'un nouveau auteur
 - Modification d'un auteur existant
 - Suppression d'un auteur
