@@ -16,6 +16,7 @@ package com.example.fulgence_app.services;
                        import org.springframework.security.core.AuthenticationException;
                        import org.springframework.security.core.userdetails.UserDetails;
                        import org.springframework.security.crypto.password.PasswordEncoder;
+                       import org.springframework.transaction.annotation.Transactional;
                        import org.springframework.stereotype.Service;
 
                        @Service
@@ -38,72 +39,6 @@ package com.example.fulgence_app.services;
                                this.passwordEncoder = passwordEncoder;
                                  this.auteurRepository = auteurRepository;
                            }
-
-                           // AuthService.java
-//                           public LoginResponse login(LoginRequest request) {
-//                               try {
-//                                   log.info("Tentative de connexion pour l'utilisateur: {}", request.getEmail());
-//
-//                                   // Authentifier l'utilisateur
-//                                   Authentication authentication = authenticationManager.authenticate(
-//                                           new UsernamePasswordAuthenticationToken(
-//                                                   request.getEmail(),
-//                                                   request.getPassword()
-//                                           )
-//                                   );
-//
-//                                   // Rechercher l'utilisateur dans la table User
-//                                   User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-//
-//                                   if (user != null) {
-//                                       // Générer le token pour User
-//                                       String token = jwtUtil.generateToken(user);
-//
-//                                       LoginResponse.UserInfo info = new LoginResponse.UserInfo(
-//                                               user.getId(),
-//                                               user.getId(),
-//                                               user.getPrenom(),
-//                                               user.getNom(),
-//                                               user.getEmail(),
-//                                               user.getRole().name(),
-//                                               user.getTelephone(),
-//                                               user.getDescription(),
-//                                               user.getAdresse(),
-//                                               user.getPhotoProfil()
-//                                       );
-//
-//                                       log.info("Connexion réussie pour l'utilisateur: {}", request.getEmail());
-//                                       return new LoginResponse(token, info, user.getRole().name());
-//                                   }
-//
-//                                   // Rechercher l'utilisateur dans la table Auteur
-//                                   Auteur auteur = auteurRepository.findByEmail(request.getEmail())
-//                                           .orElseThrow(() -> new RuntimeException("auteur introuvable"));
-//
-//                                   // Générer le token pour Auteur
-//                                   String token = jwtUtil.generateToken((UserDetails) auteur);
-//
-//                                   LoginResponse.UserInfo info = new LoginResponse.UserInfo(
-//                                           auteur.getId(),
-//                                           auteur.getId(),
-//                                           auteur.getPrenom(),
-//                                           auteur.getNom(),
-//                                           auteur.getEmail(),
-//                                           auteur.getRole().name(),
-//                                           auteur.getTelephone(),
-//                                           auteur.getDescription(),
-//                                           auteur.getAdresse(),
-//                                           auteur.getPhotoProfil()
-//                                   );
-//
-//                                   log.info("Connexion réussie pour l'auteur: {}", request.getEmail());
-//                                   return new LoginResponse(token, info, auteur.getRole().name());
-//
-//                               } catch (AuthenticationException e) {
-//                                   log.error("Échec de l'authentification pour {}: {}", request.getEmail(), e.getMessage());
-//                                   throw new RuntimeException("Identifiants invalides");
-//                               }
-//                           }
 
                             public LoginResponse login(LoginRequest request) {
                                  try {
@@ -170,7 +105,7 @@ package com.example.fulgence_app.services;
                                     }
                             }
 
-
+                           @Transactional
                            public User register(UserRequestDTO request) {
                                log.info("Tentative d'inscription pour l'utilisateur: {}", request.getEmail());
 
@@ -193,7 +128,24 @@ package com.example.fulgence_app.services;
                                    newUser.setRole(Role.valueOf(request.getRole().toUpperCase()));
 
                                    User savedUser = userRepository.save(newUser);
-                                   log.info("Inscription réussie pour l'utilisateur: {}", request.getEmail());
+
+                                   // Si le rôle est AUTEUR, créer également une entrée dans la table auteur
+                                   if (Role.AUTEUR.equals(savedUser.getRole())) {
+                                       Auteur auteur = new Auteur();
+                                       auteur.setEmail(savedUser.getEmail());
+                                       auteur.setPassword(savedUser.getPassword());
+                                       auteur.setPrenom(savedUser.getPrenom());
+                                       auteur.setNom(savedUser.getNom());
+                                       auteur.setAdresse(savedUser.getAdresse());
+                                       auteur.setTelephone(savedUser.getTelephone());
+                                       auteur.setDescription(savedUser.getDescription());
+                                       auteur.setPhotoProfil(savedUser.getPhotoProfil());
+                                       auteur.setRole(savedUser.getRole());
+
+                                       auteurRepository.save(auteur);
+                                       log.info("Auteur créé avec succès pour: {}", request.getEmail());
+                                   }
+
                                    return savedUser;
 
                                } catch (Exception e) {
